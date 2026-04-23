@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X } from 'lucide-react';
 
 const BRANDS = [
@@ -14,10 +14,37 @@ const BRANDS = [
   { name: 'Monge', logo: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=150&h=80' },
 ];
 
+const PRODUCTS = [
+  { id: 1, name: 'N&D suha hrana', description: 'Za srednje in velike pasme z jagnjetino in borovnico, 2.5kg', price: '22.40 €', image: 'https://images.unsplash.com/photo-1589924691995-400dc9cecb58?auto=format&fit=crop&q=80&w=300' },
+  { id: 2, name: 'Royal Canin Mini Adult', description: 'Popolna hrana za odrasle pse majhnih pasem', price: '18.50 €', image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=300' },
+  { id: 3, name: 'Orijen Original hrana za pse', description: 'Visokoproteinska hrana iz svežega mesa', price: '34.90 €', image: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=300' },
+  { id: 4, name: 'Acana Wild Prairie hrana za mačke', description: 'Suha hrana za mačke', price: '28.90 €', image: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=300' },
+  { id: 5, name: 'Igrača za pse - vrv', description: 'Trpežna vrv za vlečenje in grizenje', price: '8.90 €', image: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=300' },
+];
+
 export default function App() {
   const [activeMenu, setActiveMenu] = useState<boolean>(false);
   const [showCallForm, setShowCallForm] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredProducts = PRODUCTS.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    product.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleCallRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -86,18 +113,43 @@ export default function App() {
           {/* Location & Free Shipping Info above search */}
           <div className="flex-1 flex flex-col gap-2 max-w-3xl ml-4">
             <div className="text-xs text-brand-brown/80 flex gap-4 ml-4 font-medium">
-              <span>Vaše mesto: <strong className="underline cursor-pointer hover:text-brand-olive transition-colors">Ljubljana</strong></span>
               <span>Brezplačna dostava od 49 €*</span>
             </div>
             
             {/* Search Bar */}
-            <div className="relative w-full group">
+            <div className="relative w-full group" ref={searchRef}>
               <input 
                 type="text" 
                 placeholder="Iskanje izdelkov za vašega ljubljenčka..." 
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsSearchOpen(true);
+                }}
+                onFocus={() => setIsSearchOpen(true)}
                 className="w-full pl-5 pr-12 py-3.5 rounded-full bg-white border border-transparent focus:border-brand-olive/30 focus:outline-none shadow-sm text-sm transition-all text-brand-brown"
               />
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-brand-olive transition-colors cursor-pointer" size={20} />
+              
+              {/* Search Results Dropdown */}
+              {isSearchOpen && searchQuery.length > 0 && (
+                <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 max-h-[400px] overflow-y-auto">
+                  {filteredProducts.length > 0 ? (
+                    filteredProducts.map(product => (
+                      <a key={product.id} href="#" className="flex items-center gap-4 px-4 py-3 hover:bg-brand-beige transition-colors border-b border-gray-50 last:border-0" onClick={() => setIsSearchOpen(false)}>
+                         <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-md" />
+                         <div className="flex-1">
+                           <h4 className="text-sm font-medium text-brand-brown">{product.name}</h4>
+                           <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
+                         </div>
+                         <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{product.price}</span>
+                      </a>
+                    ))
+                  ) : (
+                    <div className="px-5 py-4 text-sm text-gray-500 text-center">Ni rezultatov za vaše iskanje</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
