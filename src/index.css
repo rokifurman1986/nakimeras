@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-beige: #F5EFE6;
-  --color-brand-brown: #5E3C1B;
-  --color-brand-olive: #6B8E23;
-  --color-brand-olive-hover: #5A7A1B;
-  --color-brand-orange: #E07A5F;
-  --color-brand-light: #FCFAFA;
+  --color-brand-beige: #F4EEFA; /* Soft lilac/lavender */
+  --color-brand-brown: #33273A; /* Dark plum (replaces brown text) */
+  --color-brand-olive: #8154A8; /* Main Purple (replaces olive) */
+  --color-brand-olive-hover: #673E8A; /* Darker Purple */
+  --color-brand-orange: #E8AA42; /* Soft Gold for accents/discounts */
+  --color-brand-light: #FDFCFE; /* Almost white with a tint of purple */
   
   --font-sans: 'Inter', system-ui, sans-serif;
 }
