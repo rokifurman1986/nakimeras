@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { supabase } from './lib/supabase';
 
 const BRANDS = [
   { name: 'Royal Canin', logo: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=150&h=80' },
@@ -30,6 +31,63 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Auth State
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+    
+    try {
+      if (authMode === 'register') {
+        const { error } = await supabase.auth.signUp({ email: authEmail, password: authPassword });
+        if (error) throw error;
+        alert('Preverite svoj e-poštni predal za potrditveno povezavo!');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password: authPassword });
+        if (error) throw error;
+        setShowAuthModal(false);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Prišlo je do napake.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) throw error;
+    } catch (err: any) {
+      setAuthError(err.message || 'Prišlo je do napake.');
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setShowAuthModal(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -155,7 +213,7 @@ export default function App() {
 
           {/* User Actions */}
           <div className="flex items-center gap-6 text-brand-brown shrink-0">
-            <button className="hover:text-brand-orange transition-colors" aria-label="Profil"><User size={24} strokeWidth={1.5} /></button>
+            <button onClick={() => setShowAuthModal(true)} className="hover:text-brand-orange transition-colors" aria-label="Profil"><User size={24} strokeWidth={1.5} /></button>
             <button className="hover:text-brand-orange transition-colors" aria-label="Priljubljene"><Heart size={24} strokeWidth={1.5} /></button>
             
             <button className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm hover:shadow-md hover:text-brand-olive transition-all border border-brand-beige group">
@@ -297,6 +355,79 @@ export default function App() {
         </div>
 
       </main>
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-sm p-4 text-left">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand-olive transition-colors cursor-pointer"
+              aria-label="Zapri"
+            >
+              <X size={24} />
+            </button>
+            
+            {user ? (
+               <div>
+                  <h2 className="text-2xl font-bold text-brand-brown mb-2">Vaš profil</h2>
+                  <p className="text-sm text-gray-600 mb-6">Prijavljeni ste kot: <strong className="text-brand-olive">{user.email}</strong></p>
+                  
+                  <button onClick={handleLogout} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-medium hover:bg-red-100 transition-colors shadow-sm cursor-pointer">
+                    Odjava
+                  </button>
+               </div>
+            ) : (
+               <div>
+                 <h2 className="text-2xl font-bold text-brand-brown mb-2">{authMode === 'login' ? 'Prijava' : 'Registracija'}</h2>
+                 <p className="text-sm text-gray-600 mb-6">
+                   {authMode === 'login' ? 'Vnesite svoje podatke za prijavo.' : 'Ustvarite nov račun za hitrejše nakupe.'}
+                 </p>
+                 
+                 {authError && <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-xl border border-red-200">{authError}</div>}
+
+                 <form className="flex flex-col gap-4" onSubmit={handleAuth}>
+                    <div>
+                      <label className="block text-sm font-medium text-brand-brown mb-1">E-pošta</label>
+                      <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="vasa@eposta.si" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-brand-brown mb-1">Geslo</label>
+                      <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="••••••••" />
+                    </div>
+                    <button type="submit" disabled={authLoading} className="mt-2 w-full bg-brand-olive text-white py-3 rounded-xl font-medium hover:bg-brand-olive-hover transition-colors shadow-md cursor-pointer disabled:opacity-70">
+                      {authMode === 'login' ? (authLoading ? 'Prijavljanje...' : 'Prijavi se') : (authLoading ? 'Registracija...' : 'Registriraj se')}
+                    </button>
+                 </form>
+                 
+                 <div className="mt-6 flex items-center gap-4">
+                   <div className="h-px bg-gray-200 flex-1"></div>
+                   <span className="text-xs text-gray-400 uppercase font-medium">ali</span>
+                   <div className="h-px bg-gray-200 flex-1"></div>
+                 </div>
+
+                 <button onClick={handleGoogleLogin} type="button" className="mt-6 w-full flex justify-center items-center gap-3 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22.56 12.25C22.56 11.47 22.49 10.71 22.36 9.97H12V14.28H17.92C17.67 15.68 16.89 16.88 15.7 17.67V20.44H19.26C21.34 18.52 22.56 15.65 22.56 12.25Z" fill="#4285F4"/>
+                      <path d="M12 23C14.97 23 17.46 22.02 19.26 20.44L15.7 17.67C14.73 18.32 13.48 18.72 12 18.72C9.13 18.72 6.7 16.78 5.83 14.18H2.17V17.02C4.01 20.67 7.74 23 12 23Z" fill="#34A853"/>
+                      <path d="M5.83 14.18C5.61 13.53 5.48 12.78 5.48 12C5.48 11.22 5.61 10.47 5.83 9.82V6.98H2.17C1.4 8.52 0.96 10.22 0.96 12C0.96 13.78 1.4 15.48 2.17 17.02L5.83 14.18Z" fill="#FBBC05"/>
+                      <path d="M12 5.28C13.62 5.28 15.06 5.84 16.21 6.93L19.34 3.8C17.45 2.05 14.97 1 12 1C7.74 1 4.01 3.33 2.17 6.98L5.83 9.82C6.7 7.22 9.13 5.28 12 5.28Z" fill="#EA4335"/>
+                    </svg>
+                    Nadaljuj z Google
+                 </button>
+
+                 <div className="mt-8 text-center text-sm text-gray-500">
+                    {authMode === 'login' ? 'Še nimate računa?' : 'Že imate račun?'}
+                    <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="ml-1 text-brand-olive font-medium hover:underline cursor-pointer">
+                      {authMode === 'login' ? 'Registrirajte se' : 'Prijavite se'}
+                    </button>
+                 </div>
+               </div>
+            )}
+            
+          </div>
+        </div>
+      )}
 
       {/* Call Request Modal */}
       {showCallForm && (
