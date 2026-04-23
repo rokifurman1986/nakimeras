@@ -27,7 +27,7 @@ export default function App() {
             <a href="#" className="hover:text-brand-brown transition-colors">Poslovalnice</a>
             <a href="#" className="hover:text-brand-brown transition-colors">Dostava in plačilo</a>
             <a href="#" className="hover:text-brand-brown transition-colors">Kontakt</a>
-            <a href="#" className="text-brand-orange font-medium flex items-center gap-1 hover:text-brand-orange/80 transition-colors">Nakimeras Club <Heart size={12}/></a>
+            <a href="#" className="text-brand-orange font-medium flex items-center gap-1 hover:text-brand-orange/80 transition-colors">Nakimera's Club <Heart size={12}/></a>
             <a href="#" className="hover:text-brand-brown transition-colors">Delovni čas</a>
           </div>
           <div className="flex items-center gap-6 font-medium text-gray-800">
@@ -43,7 +43,7 @@ export default function App() {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex flex-col items-center cursor-pointer text-brand-brown">
-            <div className="text-3xl font-bold font-serif tracking-tight">Naki<span className="text-brand-orange">meras</span></div>
+            <div className="text-3xl font-bold font-serif tracking-tight">Naki<span className="text-brand-orange">mera's</span></div>
             <div className="text-[11px] tracking-widest uppercase mt-0.5">Trgovina za živali</div>
           </div>
 
@@ -111,7 +111,7 @@ export default function App() {
           <div className="flex items-center gap-8 text-brand-brown font-medium flex-1">
             <a href="#" className="hover:text-brand-orange transition-colors">Nove pošiljke</a>
             <a href="#" className="hover:text-brand-orange transition-colors">Znamke</a>
-            <a href="#" className="hover:text-brand-orange transition-colors">Blog Nakimeras</a>
+            <a href="#" className="hover:text-brand-orange transition-colors">Blog Nakimera's</a>
             <a href="#" className="text-brand-orange hover:opacity-80 transition-opacity">Akcije %</a>
           </div>
 
