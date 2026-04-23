@@ -17,6 +17,42 @@ const BRANDS = [
 export default function App() {
   const [activeMenu, setActiveMenu] = useState<boolean>(false);
   const [showCallForm, setShowCallForm] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const handleCallRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const object = Object.fromEntries(formData);
+    const json = JSON.stringify({
+      access_key: "83434ec2-c44f-4b24-aa48-db94887c1932",
+      subject: "Nova zahteva za klic - Nakimera's",
+      ...object
+    });
+
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: json
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Vaša zahteva je bila poslana! Pokličemo vas kmalu.");
+        setShowCallForm(false);
+      } else {
+        alert("Prišlo je do napake. Poskusite znova.");
+      }
+    } catch (error) {
+      alert("Prišlo je do napake. Poskusite znova.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-brand-light">
@@ -227,30 +263,26 @@ export default function App() {
             
             <form 
               className="flex flex-col gap-4" 
-              onSubmit={(e) => { 
-                e.preventDefault(); 
-                alert('Vaša zahteva je bila uspešno poslana! Poklicali vas bomo v izbranem terminu.'); 
-                setShowCallForm(false); 
-              }}
+              onSubmit={handleCallRequestSubmit}
             >
               <div>
                 <label className="block text-sm font-medium text-brand-brown mb-1">Ime in priimek</label>
-                <input type="text" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="Vaše ime" />
+                <input type="text" name="name" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="Vaše ime" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-brand-brown mb-1">Telefonska številka</label>
-                <input type="tel" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="+386 31 282 891" />
+                <input type="tel" name="phone" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="+386 31 282 891" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-brand-brown mb-1">Želen čas klica</label>
-                <select className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all text-gray-700 bg-white cursor-pointer">
-                  <option>Dopoldne (8:00 - 12:00)</option>
-                  <option>Popoldne (12:00 - 16:00)</option>
-                  <option>Katerikoli čas</option>
+                <select name="time" className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all text-gray-700 bg-white cursor-pointer">
+                  <option value="Dopoldne (8:00 - 12:00)">Dopoldne (8:00 - 12:00)</option>
+                  <option value="Popoldne (12:00 - 16:00)">Popoldne (12:00 - 16:00)</option>
+                  <option value="Katerikoli čas">Katerikoli čas</option>
                 </select>
               </div>
-              <button type="submit" className="mt-4 w-full bg-brand-olive text-white py-3 rounded-xl font-medium hover:bg-brand-olive-hover transition-colors shadow-md cursor-pointer">
-                Pošlji zahtevo
+              <button type="submit" disabled={isSubmitting} className="mt-4 w-full bg-brand-olive text-white py-3 rounded-xl font-medium hover:bg-brand-olive-hover transition-colors shadow-md cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                {isSubmitting ? 'Pošiljam...' : 'Pošlji zahtevo'}
               </button>
             </form>
           </div>
