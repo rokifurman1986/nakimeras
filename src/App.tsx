@@ -41,17 +41,51 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
+  // Wishlist State
+  const [wishlistIds, setWishlistIds] = useState<number[]>([]);
+
+  const loadWishlist = async (userId: string) => {
+    const { data, error } = await supabase.from('wishlist').select('product_id').eq('user_id', userId);
+    if (data && !error) {
+      setWishlistIds(data.map(item => item.product_id));
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) loadWishlist(currentUser.id);
+      else setWishlistIds([]);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) loadWishlist(currentUser.id);
+      else setWishlistIds([]);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const toggleWishlist = async (productId: number) => {
+    if (!user) {
+      alert('Prosimo prijavite se za shranjevanje priljubljenih izdelkov');
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (wishlistIds.includes(productId)) {
+      // Remove from wishlist
+      setWishlistIds(prev => prev.filter(id => id !== productId));
+      await supabase.from('wishlist').delete().eq('user_id', user.id).eq('product_id', productId);
+    } else {
+      // Add to wishlist
+      setWishlistIds(prev => [...prev, productId]);
+      await supabase.from('wishlist').insert([{ user_id: user.id, product_id: productId }]);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -200,7 +234,15 @@ export default function App() {
                            <h4 className="text-sm font-medium text-brand-brown">{product.name}</h4>
                            <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
                          </div>
-                         <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{product.price}</span>
+                         <div className="flex items-center gap-4">
+                           <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{product.price}</span>
+                           <button 
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }} 
+                              className="text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
+                           >
+                              <Heart size={18} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
+                           </button>
+                         </div>
                       </a>
                     ))
                   ) : (
@@ -214,7 +256,14 @@ export default function App() {
           {/* User Actions */}
           <div className="flex items-center gap-6 text-brand-brown shrink-0">
             <button onClick={() => setShowAuthModal(true)} className="hover:text-brand-orange transition-colors" aria-label="Profil"><User size={24} strokeWidth={1.5} /></button>
-            <button className="hover:text-brand-orange transition-colors" aria-label="Priljubljene"><Heart size={24} strokeWidth={1.5} /></button>
+            <button className="hover:text-brand-orange transition-colors relative" aria-label="Priljubljene">
+               <Heart size={24} strokeWidth={1.5} />
+               {wishlistIds.length > 0 && (
+                 <span className="absolute -top-2 -right-2 bg-brand-orange text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                   {wishlistIds.length}
+                 </span>
+               )}
+            </button>
             
             <button className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm hover:shadow-md hover:text-brand-olive transition-all border border-brand-beige group">
               <span className="text-sm font-medium">Košarica je prazna</span>
@@ -316,9 +365,17 @@ export default function App() {
 
           {/* Product of the Day */}
           <div className="lg:col-span-1 bg-white rounded-3xl border border-brand-beige shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col relative text-center">
+            
+            {/* Wishlist Button for Product of the Day (ID: 1) */}
+            <button 
+              onClick={(e) => { e.preventDefault(); toggleWishlist(1); }}
+              className="absolute top-6 right-6 z-20 text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
+            >
+              <Heart size={22} fill={wishlistIds.includes(1) ? 'currentColor' : 'none'} className={wishlistIds.includes(1) ? 'text-brand-orange' : ''} />
+            </button>
+
             <div className="flex justify-between items-start mb-6">
               <span className="text-brand-brown font-bold uppercase tracking-wide text-sm">Izdelek dneva</span>
-              <span className="bg-brand-orange text-white font-bold px-2 py-1 rounded text-xs">-10%</span>
             </div>
             
             <div className="flex-1 flex justify-center items-center mb-6 group cursor-pointer relative">
