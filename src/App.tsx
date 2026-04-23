@@ -15,12 +15,18 @@ const BRANDS = [
   { name: 'Monge', logo: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=150&h=80' },
 ];
 
-const PRODUCTS = [
-  { id: 1, name: 'N&D suha hrana', description: 'Za srednje in velike pasme z jagnjetino in borovnico, 2.5kg', price: '22.40 €', image: 'https://images.unsplash.com/photo-1589924691995-400dc9cecb58?auto=format&fit=crop&q=80&w=300' },
-  { id: 2, name: 'Royal Canin Mini Adult', description: 'Popolna hrana za odrasle pse majhnih pasem', price: '18.50 €', image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=300' },
-  { id: 3, name: 'Orijen Original hrana za pse', description: 'Visokoproteinska hrana iz svežega mesa', price: '34.90 €', image: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=300' },
-  { id: 4, name: 'Acana Wild Prairie hrana za mačke', description: 'Suha hrana za mačke', price: '28.90 €', image: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?auto=format&fit=crop&q=80&w=300' },
-  { id: 5, name: 'Igrača za pse - vrv', description: 'Trpežna vrv za vlečenje in grizenje', price: '8.90 €', image: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=300' },
+const FALLBACK_PRODUCTS = [
+  { id: 1, sifra: 'WP87108', name: 'Wanpy Cat Creamy lickable treats-chicken', category: 'cat', price: 1.44, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87108 | EAN: 6927749871088' },
+  { id: 2, sifra: 'WP87109', name: 'Wanpy Cat Creamy lickable treats-tuna&shrimp', category: 'cat', price: 1.44, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87109 | EAN: 6927749871095' },
+  { id: 3, sifra: 'WP87123', name: 'Wanpy Cat Creamy treat Chicken&Crab 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87123 | EAN: 6927749871248' },
+  { id: 4, sifra: 'WP87122', name: 'Wanpy Cat Creamy treat Tuna&Crab 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87122 | EAN: 6927749871231' },
+  { id: 5, sifra: 'WP87121', name: 'Wanpy Cat Creamy treat Tuna&Shrimp 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87121 | EAN: 6927749871149' },
+  { id: 6, sifra: 'WP81147', name: 'Wanpy Cat Freeze dried shrimp 20g', category: 'cat', price: 2.03, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP81147 | EAN: 6927749811473' },
+  { id: 11, sifra: 'WP89500', name: 'Wanpy Christmas Calendars 100g', category: 'dog', price: 6.79, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP89500 | EAN: 6927749813088' },
+  { id: 13, sifra: 'WP83022', name: 'Wanpy Dog Beef Marbled Bites 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP83022 | EAN: 6927749830221' },
+  { id: 14, sifra: 'WP81065', name: 'Wanpy Dog Chicken Chips 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP81065 | EAN: 6927749810650' },
+  { id: 25, sifra: 'WP87022', name: 'Wanpy Dog Meat Paste Beef&Carrot&Pea', category: 'dog', price: 1.69, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP87022 | EAN: 6927749870227' },
+  { id: 29, sifra: 'WP86901', name: 'Wanpy Dog Toothbrush Chews Chicken 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP86901 | EAN: 6927749869016' }
 ];
 
 export default function App() {
@@ -43,6 +49,20 @@ export default function App() {
 
   // Wishlist State
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
+  
+  // Products State
+  const [products, setProducts] = useState<any[]>(FALLBACK_PRODUCTS);
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+    if (data && data.length > 0 && !error) {
+      setProducts(data);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const loadWishlist = async (userId: string) => {
     const { data, error } = await supabase.from('wishlist').select('product_id').eq('user_id', userId);
@@ -133,10 +153,14 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const filteredProducts = PRODUCTS.filter(product => 
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    product.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = products.filter(product => 
+    product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.sifra?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const dogProducts = products.filter(p => p.category === 'dog');
+  const catProducts = products.filter(p => p.category === 'cat');
 
   const handleCallRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -235,7 +259,7 @@ export default function App() {
                            <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
                          </div>
                          <div className="flex items-center gap-4">
-                           <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{product.price}</span>
+                           <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{typeof product.price === 'number' ? product.price.toFixed(2) : product.price} €</span>
                            <button 
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }} 
                               className="text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
@@ -366,13 +390,15 @@ export default function App() {
           {/* Product of the Day */}
           <div className="lg:col-span-1 bg-white rounded-3xl border border-brand-beige shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col relative text-center">
             
-            {/* Wishlist Button for Product of the Day (ID: 1) */}
-            <button 
-              onClick={(e) => { e.preventDefault(); toggleWishlist(1); }}
-              className="absolute top-6 right-6 z-20 text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
-            >
-              <Heart size={22} fill={wishlistIds.includes(1) ? 'currentColor' : 'none'} className={wishlistIds.includes(1) ? 'text-brand-orange' : ''} />
-            </button>
+            {/* Wishlist Button for Product of the Day */}
+            {products.length > 0 && (
+              <button 
+                onClick={(e) => { e.preventDefault(); toggleWishlist(products[0].id); }}
+                className="absolute top-6 right-6 z-20 text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
+              >
+                <Heart size={22} fill={wishlistIds.includes(products[0].id) ? 'currentColor' : 'none'} className={wishlistIds.includes(products[0].id) ? 'text-brand-orange' : ''} />
+              </button>
+            )}
 
             <div className="flex justify-between items-start mb-6">
               <span className="text-brand-brown font-bold uppercase tracking-wide text-sm">Izdelek dneva</span>
@@ -380,16 +406,15 @@ export default function App() {
             
             <div className="flex-1 flex justify-center items-center mb-6 group cursor-pointer relative">
                <div className="absolute inset-0 bg-brand-beige/40 rounded-full scale-0 group-hover:scale-110 transition-transform duration-300"></div>
-              <img src="https://images.unsplash.com/photo-1589924691995-400dc9cecb58?auto=format&fit=crop&q=80&w=300" alt="Dog Food Bag" className="h-48 object-contain mix-blend-multiply relative z-10 group-hover:rotate-2 transition-transform" />
+              <img src={products[0]?.image_url || "https://placehold.co/300x300"} alt="Izdelek" className="h-48 object-contain mix-blend-multiply relative z-10 group-hover:rotate-2 transition-transform" />
             </div>
 
             <div className="mt-auto">
-              <p className="text-xs text-gray-600 mb-3 leading-relaxed hover:text-brand-olive cursor-pointer transition-colors">
-                N&D suha hrana za srednje in velike pasme, z jagnjetino in borovnico, 2.5kg
+              <p className="text-xs text-gray-600 mb-3 leading-relaxed hover:text-brand-olive cursor-pointer transition-colors line-clamp-2">
+                {products[0]?.name || "Nalagam izdelek..."}
               </p>
               <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl font-bold text-brand-orange">22.40 €</span>
-                <span className="text-sm text-gray-400 line-through">24.90 €</span>
+                <span className="text-2xl font-bold text-brand-orange">{products[0]?.price ? Number(products[0].price).toFixed(2) : '-.--'} €</span>
               </div>
             </div>
           </div>
@@ -408,6 +433,78 @@ export default function App() {
              <a href="#" className="text-sm text-gray-500 hover:text-brand-olive font-medium flex items-center justify-end gap-1 transition-colors">
                Vse znamke <ChevronRight size={14}/>
              </a>
+          </div>
+        </div>
+
+        {/* Catalog Section */}
+        <div className="mt-8">
+          
+          {/* Dogs Catalog */}
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
+              Wanpy Katalog za Pse
+              <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {dogProducts.map((product) => (
+                <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
+                  
+                  {/* Category Badge */}
+                  <span className="absolute top-3 left-3 bg-[#eae1f5] text-[#8154a8] text-[10px] font-bold px-2 py-1 uppercase rounded tracking-wider">PES</span>
+                  
+                  {/* Wishlist Heart */}
+                  <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
+                    <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
+                  </button>
+
+                  <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4" />
+                  
+                  <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
+                  <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
+                  
+                  <div className="mt-auto w-full flex items-center justify-between">
+                    <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
+                    <button className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors">
+                      <ShoppingCart size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cats Catalog */}
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
+              Wanpy Katalog za Mačke
+              <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              {catProducts.map((product) => (
+                <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
+                  
+                  {/* Category Badge */}
+                  <span className="absolute top-3 left-3 bg-[#f4eefa] text-[#a48abf] text-[10px] font-bold px-2 py-1 uppercase rounded tracking-wider">MAČKA</span>
+                  
+                  {/* Wishlist Heart */}
+                  <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
+                    <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
+                  </button>
+
+                  <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4" />
+                  
+                  <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
+                  <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
+                  
+                  <div className="mt-auto w-full flex items-center justify-between">
+                    <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
+                    <button className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors">
+                      <ShoppingCart size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
