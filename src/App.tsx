@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, Cat, Dog } from 'lucide-react';
+import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X } from 'lucide-react';
 
 const BRANDS = [
   { name: 'Royal Canin', logo: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=150&h=80' },
@@ -16,6 +16,7 @@ const BRANDS = [
 
 export default function App() {
   const [activeMenu, setActiveMenu] = useState<boolean>(false);
+  const [showCallForm, setShowCallForm] = useState<boolean>(false);
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-brand-light">
@@ -24,15 +25,15 @@ export default function App() {
       <div className="bg-white py-2 px-4 text-[13px] text-gray-600 border-b border-gray-100 hidden md:block">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-olive transition-colors">Poslovalnice</a>
             <a href="#" className="hover:text-brand-olive transition-colors">Dostava in plačilo</a>
             <a href="#" className="hover:text-brand-olive transition-colors">Kontakt</a>
             <a href="#" className="text-brand-orange font-medium flex items-center gap-1 hover:opacity-80 transition-opacity">Nakimera's Club <Heart size={12} fill="currentColor" /></a>
-            <a href="#" className="hover:text-brand-olive transition-colors">Delovni čas</a>
           </div>
           <div className="flex items-center gap-6 font-medium text-brand-brown">
-            <span className="text-lg tracking-wide">+386 (0)80 12 34 56</span>
-            <a href="#" className="flex items-center gap-1 hover:text-brand-orange text-sm font-normal"><Phone size={14}/> Zahtevaj klic</a>
+            <span className="text-lg tracking-wide">+386 (0)31 282 891</span>
+            <button onClick={() => setShowCallForm(true)} className="flex items-center gap-1 hover:text-brand-orange text-sm font-normal cursor-pointer">
+              <Phone size={14}/> Zahtevaj klic
+            </button>
           </div>
         </div>
       </div>
@@ -42,14 +43,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-8">
           
           {/* Custom Logo Replacement matching the user's uploaded logo */}
-          <div className="flex-shrink-0 flex flex-col items-center cursor-pointer group">
-            <div className="flex items-end justify-center text-brand-olive mb-1 relative h-[48px] w-[64px] group-hover:scale-105 transition-transform duration-300">
-              <Cat size={32} fill="currentColor" className="absolute left-0 bottom-0 z-10" />
-              <Dog size={48} fill="currentColor" className="absolute right-0 bottom-0" />
-            </div>
-            <div className="text-[26px] font-bold font-sans tracking-[0.2em] text-brand-brown leading-none mt-1">NAKIMERA'S</div>
-            <div className="text-[13px] font-serif italic text-brand-brown tracking-[0.08em] mt-1 opacity-90">trgovina za male živali</div>
-          </div>
+          <a href="/" className="flex-shrink-0 flex flex-col items-center cursor-pointer group">
+            <img src="/logo.png" alt="Nakimera's Logo" className="max-h-[80px] w-auto object-contain group-hover:scale-105 transition-transform duration-300" />
+          </a>
 
           {/* Location & Free Shipping Info above search */}
           <div className="flex-1 flex flex-col gap-2 max-w-3xl ml-4">
@@ -213,6 +209,53 @@ export default function App() {
         </div>
 
       </main>
+
+      {/* Call Request Modal */}
+      {showCallForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <button 
+              onClick={() => setShowCallForm(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand-olive transition-colors cursor-pointer"
+              aria-label="Zapri"
+            >
+              <X size={24} />
+            </button>
+            
+            <h2 className="text-2xl font-bold text-brand-brown mb-2">Zahtevaj klic</h2>
+            <p className="text-sm text-gray-600 mb-6">Pustite svoje podatke in poklicali vas bomo v najkrajšem možnem času.</p>
+            
+            <form 
+              className="flex flex-col gap-4" 
+              onSubmit={(e) => { 
+                e.preventDefault(); 
+                alert('Vaša zahteva je bila uspešno poslana! Poklicali vas bomo v izbranem terminu.'); 
+                setShowCallForm(false); 
+              }}
+            >
+              <div>
+                <label className="block text-sm font-medium text-brand-brown mb-1">Ime in priimek</label>
+                <input type="text" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="Vaše ime" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-brown mb-1">Telefonska številka</label>
+                <input type="tel" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="+386 31 282 891" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-brand-brown mb-1">Želen čas klica</label>
+                <select className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all text-gray-700 bg-white cursor-pointer">
+                  <option>Dopoldne (8:00 - 12:00)</option>
+                  <option>Popoldne (12:00 - 16:00)</option>
+                  <option>Katerikoli čas</option>
+                </select>
+              </div>
+              <button type="submit" className="mt-4 w-full bg-brand-olive text-white py-3 rounded-xl font-medium hover:bg-brand-olive-hover transition-colors shadow-md cursor-pointer">
+                Pošlji zahtevo
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
