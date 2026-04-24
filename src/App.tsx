@@ -27,6 +27,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const catalogRef = useRef<HTMLDivElement>(null);
 
   // Filter State
   const [filterAnimal, setFilterAnimal] = useState<'all' | 'dog' | 'cat'>('all');
@@ -439,11 +440,21 @@ export default function App() {
               onMouseEnter={() => setActiveMenu(true)}
               onMouseLeave={() => setActiveMenu(false)}
             >
-              <div className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Psi</div>
-              <div className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Mačke</div>
-              <div className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Male živali</div>
-              <div className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Ptice</div>
-              <div className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Teraristika</div>
+              {products.some(p => p.category === 'dog') && (
+                <div onClick={() => { setFilterAnimal('dog'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Psi</div>
+              )}
+              {products.some(p => p.category === 'cat') && (
+                <div onClick={() => { setFilterAnimal('cat'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Mačke</div>
+              )}
+              {products.some(p => p.category === 'small_animal') && (
+                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Male živali</div>
+              )}
+              {products.some(p => p.category === 'bird') && (
+                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Ptice</div>
+              )}
+              {products.some(p => p.category === 'reptile') && (
+                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Teraristika</div>
+              )}
             </div>
           )}
 
@@ -558,7 +569,7 @@ export default function App() {
         </div>
 
         {/* Interactive Catalog Section */}
-        <div className="mt-12">
+        <div ref={catalogRef} className="mt-12">
           <div className="flex flex-col lg:flex-row gap-8 mb-16">
             
             {/* Filter Sidebar */}
