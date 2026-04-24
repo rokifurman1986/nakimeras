@@ -305,6 +305,11 @@ export default function App() {
         </div>
       </header>
 
+      {/* Under Construction Banner */}
+      <div className="bg-amber-400 text-brand-brown py-3 px-4 text-center font-black text-2xl md:text-3xl uppercase tracking-widest shadow-md relative z-20">
+        SPLETNA STRAN JE V IZDELAVI
+      </div>
+
       {/* Main Navigation (White) */}
       <nav className="bg-white border-b border-gray-100 shadow-sm relative z-20">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-8">
