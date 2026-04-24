@@ -19,6 +19,9 @@ const BRANDS = [
 export default function App() {
   const [activeMenu, setActiveMenu] = useState<boolean>(false);
   const [showCallForm, setShowCallForm] = useState<boolean>(false);
+  const [showDeliveryModal, setShowDeliveryModal] = useState<boolean>(false);
+  const [showContactModal, setShowContactModal] = useState<boolean>(false);
+  const [showClubModal, setShowClubModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -309,9 +312,9 @@ export default function App() {
       <div className="bg-white py-2 px-4 text-[13px] text-gray-600 border-b border-gray-100 hidden md:block">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-olive transition-colors">Dostava in plačilo</a>
-            <a href="#" className="hover:text-brand-olive transition-colors">Kontakt</a>
-            <a href="#" className="text-brand-orange font-medium flex items-center gap-1 hover:opacity-80 transition-opacity">Nakimera's Club <Heart size={12} fill="currentColor" /></a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setShowDeliveryModal(true); }} className="hover:text-brand-olive transition-colors">Dostava in plačilo</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setShowContactModal(true); }} className="hover:text-brand-olive transition-colors">Kontakt</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); setShowClubModal(true); }} className="text-brand-orange font-medium flex items-center gap-1 hover:opacity-80 transition-opacity">Nakimera's Club <Heart size={12} fill="currentColor" /></a>
           </div>
           <div className="flex items-center gap-6 font-medium text-brand-brown">
             <span className="text-lg tracking-wide">+386 (0)31 282 891</span>
@@ -1077,6 +1080,131 @@ export default function App() {
               </div>
               <button type="submit" disabled={isSubmitting} className="mt-4 w-full bg-brand-olive text-white py-3 rounded-xl font-medium hover:bg-brand-olive-hover transition-colors shadow-md cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
                 {isSubmitting ? 'Pošiljam...' : 'Pošlji zahtevo'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery & Payment Modal */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-sm p-4 text-left">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowDeliveryModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand-orange transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <h3 className="text-2xl font-bold text-brand-brown mb-6">Dostava in plačilo</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <h4 className="font-bold text-brand-olive mb-2 text-lg">Dostava</h4>
+                <p className="text-gray-600 mb-1">Dostava v 1-3 delovnih dneh</p>
+                <p className="font-medium text-brand-brown bg-brand-light p-3 rounded-xl border border-brand-beige">Brezplačna dostava za naročila nad 49 €<br/><span className="text-sm font-normal text-gray-500">(sicer Dostava: 3,90 €)</span></p>
+                <p className="text-sm text-gray-500 mt-2 flex items-center gap-2"><Truck size={16}/> Dostavo izvaja Pošta Slovenije</p>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-brand-olive mb-2 text-lg">Načini plačila</h4>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <div className="bg-brand-olive/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle size={16} className="text-brand-olive"/></div>
+                    <div>
+                      <span className="font-medium text-brand-brown">Po povzetku</span>
+                      <p className="text-sm text-gray-500">Gotovina ali kartica ob prevzemu (+ 1,50 € provizija)</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3 opacity-60">
+                    <div className="bg-gray-100 p-2 rounded-full mt-1 shrink-0"><CreditCard size={16} className="text-gray-400"/></div>
+                    <div>
+                      <span className="font-medium text-gray-600">Kartično plačilo</span>
+                      <p className="text-sm text-gray-500">Kmalu na voljo</p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <button onClick={() => setShowDeliveryModal(false)} className="mt-8 w-full bg-gray-100 text-brand-brown py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+              Zapri
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Modal */}
+      {showContactModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-sm p-4 text-left">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowContactModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand-orange transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <h3 className="text-2xl font-bold text-brand-brown mb-6">Kontakt</h3>
+            
+            <div className="space-y-6">
+              <div className="flex flex-col gap-1 items-center bg-brand-light p-6 rounded-2xl border border-brand-beige text-center">
+                <Phone size={32} className="text-brand-olive mb-2" />
+                <span className="text-2xl font-bold tracking-wide text-brand-brown">+386 (0)31 282 891</span>
+                <span className="text-sm text-gray-500">Pon–Pet: 8:00–16:00</span>
+                <button 
+                  onClick={() => { setShowContactModal(false); setShowCallForm(true); }}
+                  className="mt-4 bg-brand-olive text-white px-6 py-2 rounded-full font-medium hover:bg-brand-brown transition-colors shadow-sm"
+                >
+                  Zahtevaj klic
+                </button>
+              </div>
+            </div>
+            
+            <button onClick={() => setShowContactModal(false)} className="mt-8 w-full bg-gray-100 text-brand-brown py-3 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+              Zapri
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Club Modal */}
+      {showClubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-sm p-4 text-left">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setShowClubModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-brand-orange transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-brand-orange/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart size={32} className="text-brand-orange" fill="currentColor" />
+              </div>
+              <h3 className="text-2xl font-bold text-brand-brown">Nakimera's Club 🐾</h3>
+              <p className="text-gray-600 mt-2">Pridružite se našemu klubu zvestobe in uživajte v ekskluzivnih ugodnostih!</p>
+            </div>
+            
+            <div className="bg-brand-light p-6 rounded-2xl mb-6 border border-brand-beige">
+              <ul className="space-y-3 font-medium text-brand-brown">
+                <li className="flex items-center gap-3"><CheckCircle size={18} className="text-brand-olive shrink-0"/> Posebne članske cene</li>
+                <li className="flex items-center gap-3"><CheckCircle size={18} className="text-brand-olive shrink-0"/> Zgodnji dostop do novih izdelkov</li>
+                <li className="flex items-center gap-3"><CheckCircle size={18} className="text-brand-olive shrink-0"/> Ekskluzivne akcije samo za člane</li>
+                <li className="flex items-center gap-3"><CheckCircle size={18} className="text-brand-olive shrink-0"/> Brezplačna dostava pri nižjem znesku</li>
+              </ul>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              alert("Hvala! Kmalu vas bomo kontaktirali.");
+              setShowClubModal(false);
+            }}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vaš e-naslov</label>
+                <input required type="email" placeholder="vnesite@email.com" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange bg-white transition-all" />
+              </div>
+              <button type="submit" className="w-full bg-brand-orange text-white py-3 rounded-xl font-bold text-lg hover:bg-opacity-90 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                Postani član <Heart size={18} />
               </button>
             </form>
           </div>
