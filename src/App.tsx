@@ -480,7 +480,7 @@ export default function App() {
                 <div className="mb-6">
                   <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Znamka</h4>
                   <div className="flex flex-col gap-2">
-                    {['all', 'Wanpy', 'MIAMOR', 'Farmina', 'RINTI', 'Brit Premium', 'Brit Care', 'Brit Fresh', 'Brit', 'VetaPro', 'Alpha Spirit'].map(brand => (
+                    {['all', 'Wanpy', 'MIAMOR', 'Farmina', 'RINTI', 'Brit Premium', 'Brit Care', 'Brit Fresh', 'Brit', 'VetaPro', 'Alpha Spirit', 'Josera'].map(brand => (
                       <button 
                         key={brand}
                         onClick={() => { setFilterBrand(brand); setFilterSubcategory('all'); }}
