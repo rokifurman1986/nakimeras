@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X, Plus, Minus, Trash2 } from 'lucide-react';
+import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X, Minus, Plus, CreditCard, Truck, CheckCircle } from 'lucide-react';
 import { supabase } from './lib/supabase';
 import { FALLBACK_PRODUCTS } from './data/products';
 
@@ -15,14 +15,6 @@ const BRANDS = [
   { name: 'N&D', logo: 'https://images.unsplash.com/photo-1585845012574-e85df6def852?auto=format&fit=crop&q=80&w=150&h=80' },
   { name: 'Monge', logo: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=150&h=80' },
 ];
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  image_url: string;
-  quantity: number;
-}
 
 export default function App() {
   const [activeMenu, setActiveMenu] = useState<boolean>(false);
@@ -50,46 +42,32 @@ export default function App() {
   // Wishlist State
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
   
-  // Products State
-  const [products, setProducts] = useState<any[]>(FALLBACK_PRODUCTS);
-
   // Cart State
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
 
-  // Cart helpers
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
-  const addToCart = (product: any) => {
-    setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prev, {
-        id: product.id,
-        name: product.name,
-        price: Number(product.price),
-        image_url: product.image_url,
-        quantity: 1,
-      }];
-    });
-  };
-
-  const updateQuantity = (id: number, delta: number) => {
-    setCartItems(prev =>
-      prev.map(item =>
-        item.id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
-      )
-    );
-  };
-
-  const removeFromCart = (id: number) => {
-    setCartItems(prev => prev.filter(item => item.id !== id));
-  };
+  // Checkout State
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState(1);
+  const [checkoutData, setCheckoutData] = useState({
+    imePriimek: '',
+    email: '',
+    telefon: '',
+    ulica: '',
+    postnaSt: '',
+    mesto: '',
+    nacinPlacila: 'povzetje',
+    kartica: {
+      stevilka: '',
+      ime: '',
+      datum: '',
+      cvv: ''
+    }
+  });
+  const [isOrderSubmitting, setIsOrderSubmitting] = useState(false);
+  
+  // Products State
+  const [products, setProducts] = useState<any[]>(FALLBACK_PRODUCTS);
 
   const fetchProducts = async () => {
     const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
@@ -135,9 +113,11 @@ export default function App() {
     }
 
     if (wishlistIds.includes(productId)) {
+      // Remove from wishlist
       setWishlistIds(prev => prev.filter(id => id !== productId));
       await supabase.from('wishlist').delete().eq('user_id', user.id).eq('product_id', productId);
     } else {
+      // Add to wishlist
       setWishlistIds(prev => [...prev, productId]);
       await supabase.from('wishlist').insert([{ user_id: user.id, product_id: productId }]);
     }
@@ -189,25 +169,6 @@ export default function App() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Close cart on ESC
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsCartOpen(false);
-    };
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
-  }, []);
-
-  // Prevent body scroll when cart is open
-  useEffect(() => {
-    if (isCartOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [isCartOpen]);
-
   const filteredProducts = products.filter(product => 
     product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -232,6 +193,79 @@ export default function App() {
     setFilterBrand('all');
     setFilterSubcategory('all');
   };
+
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+  };
+
+  const updateCartQuantity = (productId: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.product.id === productId) {
+        const newQ = item.quantity + delta;
+        return { ...item, quantity: newQ > 0 ? newQ : 0 };
+      }
+      return item;
+    }).filter(item => item.quantity > 0));
+  };
+
+  const cartTotalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+  const cartTotalPrice = cart.reduce((acc, item) => acc + (parseFloat(item.product.price) * item.quantity), 0);
+  const cartShippingCost = cartTotalPrice >= 49 ? 0 : 3.90;
+  const cartCodFee = checkoutData.nacinPlacila === 'povzetje' ? 1.50 : 0;
+  const cartFinalPrice = cartTotalPrice + cartShippingCost + cartCodFee;
+
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsOrderSubmitting(true);
+    
+    const itemsHtml = cart.map(item => `<li>${item.quantity}x ${item.product.name} - ${parseFloat(item.product.price).toFixed(2)} €</li>`).join('');
+
+    const json = JSON.stringify({
+      access_key: "83434ec2-c44f-4b24-aa48-db94887c1932",
+      subject: "Novo naročilo - Nakimera's",
+      imePriimek: checkoutData.imePriimek,
+      email: checkoutData.email,
+      telefon: checkoutData.telefon,
+      dostava: `${checkoutData.ulica}, ${checkoutData.postnaSt} ${checkoutData.mesto}`,
+      nacinPlacila: checkoutData.nacinPlacila,
+      znesekIzdelkov: cartTotalPrice.toFixed(2) + " €",
+      dostavaStrosek: cartShippingCost.toFixed(2) + " €",
+      dodatekPovzetje: cartCodFee.toFixed(2) + " €",
+      skupniZnesek: cartFinalPrice.toFixed(2) + " €",
+      izdelki: itemsHtml
+    });
+
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: json
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Hvala za vaše naročilo! Uspešno smo ga prejeli.");
+        setCart([]);
+        setIsCheckoutOpen(false);
+        setCheckoutStep(1);
+      } else {
+        alert("Prišlo je do napake pri pošiljanju. Prosimo, poskusite znova.");
+      }
+    } catch (error) {
+      alert("Napaka v povezavi. Prosimo, poskusite znova.");
+    } finally {
+      setIsOrderSubmitting(false);
+    }
+  }
 
   const handleCallRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -292,10 +326,12 @@ export default function App() {
       <header className="bg-brand-beige py-6 relative z-30">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-8">
           
+          {/* Custom Logo Replacement matching the user's uploaded logo */}
           <a href="/" className="flex-shrink-0 flex flex-col items-center cursor-pointer group">
             <img src="/logo.png" alt="Nakimera's Logo" className="max-h-[80px] w-auto object-contain group-hover:scale-105 transition-transform duration-300" />
           </a>
 
+          {/* Location & Free Shipping Info above search */}
           <div className="flex-1 flex flex-col gap-2 max-w-3xl ml-4">
             <div className="text-xs text-brand-brown/80 flex gap-4 ml-4 font-medium">
               <span>Brezplačna dostava od 49 €*</span>
@@ -316,6 +352,7 @@ export default function App() {
               />
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-brand-olive transition-colors cursor-pointer" size={20} />
               
+              {/* Search Results Dropdown */}
               {isSearchOpen && searchQuery.length > 0 && (
                 <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 max-h-[400px] overflow-y-auto">
                   {filteredProducts.length > 0 ? (
@@ -357,19 +394,16 @@ export default function App() {
                )}
             </button>
             
-            {/* Cart Button */}
-            <button
+            <button 
               onClick={() => setIsCartOpen(true)}
               className="flex items-center gap-3 bg-white px-5 py-3 rounded-full shadow-sm hover:shadow-md hover:text-brand-olive transition-all border border-brand-beige group relative"
             >
-              <span className="text-sm font-medium">
-                {cartCount === 0 ? 'Košarica je prazna' : `Košarica (${cartCount})`}
-              </span>
+              <span className="text-sm font-medium">Košarica {cartTotalItems > 0 ? `(${cartTotalItems})` : 'je prazna'}</span>
               <ShoppingCart size={22} strokeWidth={1.5} className="group-hover:scale-110 transition-transform" />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-brand-orange text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                  {cartCount}
-                </span>
+              {cartTotalItems > 0 && (
+                 <span className="absolute -top-2 -right-2 bg-brand-orange text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                   {cartTotalItems}
+                 </span>
               )}
             </button>
           </div>
@@ -385,6 +419,7 @@ export default function App() {
       <nav className="bg-white border-b border-gray-100 shadow-sm relative z-20">
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-8">
           
+          {/* Catalog Button */}
           <button 
             className="flex items-center gap-3 bg-brand-olive text-white px-8 py-4 rounded-b-xl hover:bg-brand-olive-hover transition-colors font-medium relative -top-1 shadow-md"
             onMouseEnter={() => setActiveMenu(true)}
@@ -394,6 +429,7 @@ export default function App() {
             <Menu size={20} />
           </button>
 
+          {/* Mega Menu Dropdown */}
           {activeMenu && (
             <div 
               className="absolute top-[100%] left-4 w-64 bg-white shadow-xl rounded-b-xl border border-gray-100 py-4 z-50 text-brand-brown"
@@ -408,6 +444,7 @@ export default function App() {
             </div>
           )}
 
+          {/* Links */}
           <div className="flex items-center gap-8 text-brand-brown font-medium flex-1">
             <a href="#" className="hover:text-brand-olive transition-colors">Nove pošiljke</a>
             <a href="#" className="hover:text-brand-olive transition-colors">Znamke</a>
@@ -424,6 +461,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 relative">
         
+        {/* Top Grid: Hero + Product of the Day */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           
           {/* Hero Banner */}
@@ -443,12 +481,14 @@ export default function App() {
               </button>
             </div>
 
+            {/* Simulated animal heads for absolute positioning */}
             <div className="relative z-10 hidden md:block w-72 h-72">
                  <div className="absolute top-1/2 -left-12 bg-white px-4 py-2 rounded-full shadow-md transform -rotate-6 text-brand-brown font-medium italic animate-bounce-slow">
                     Mjav!
                  </div>
             </div>
 
+            {/* Slider controls */}
             <button className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-olive/40 hover:text-brand-olive font-bold z-20 transition-colors bg-white/40 hover:bg-white/80 rounded-full p-2">
               <ChevronLeft size={32} strokeWidth={1.5} />
             </button>
@@ -456,6 +496,7 @@ export default function App() {
               <ChevronRight size={32} strokeWidth={1.5} />
             </button>
             
+            {/* Dots */}
             <div className="absolute bottom-6 right-10 z-20 flex gap-2">
               <div className="w-3 h-3 rounded-full bg-brand-orange shadow-sm"></div>
               <div className="w-3 h-3 rounded-full bg-brand-olive/20 hover:bg-brand-olive/40 cursor-pointer transition-colors shadow-sm"></div>
@@ -467,6 +508,7 @@ export default function App() {
           {/* Product of the Day */}
           <div className="lg:col-span-1 bg-white rounded-3xl border border-brand-beige shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col relative text-center">
             
+            {/* Wishlist Button for Product of the Day */}
             {products.length > 0 && (
               <button 
                 onClick={(e) => { e.preventDefault(); toggleWishlist(products[0].id); }}
@@ -489,22 +531,14 @@ export default function App() {
               <p className="text-xs text-gray-600 mb-3 leading-relaxed hover:text-brand-olive cursor-pointer transition-colors line-clamp-2">
                 {products[0]?.name || "Nalagam izdelek..."}
               </p>
-              <div className="flex items-center justify-between gap-2 mt-4">
+              <div className="flex items-center justify-center gap-3">
                 <span className="text-2xl font-bold text-brand-orange">{products[0]?.price ? Number(products[0].price).toFixed(2) : '-.--'} €</span>
-                {products[0] && (
-                  <button
-                    onClick={() => addToCart(products[0])}
-                    className="bg-brand-olive text-white px-3 py-2 rounded-full text-xs font-medium hover:bg-brand-brown transition-colors flex items-center gap-1 shadow-sm"
-                  >
-                    <ShoppingCart size={14} /> Dodaj
-                  </button>
-                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Brands Carousel */}
+        {/* Brands Carousel Area */}
         <div className="flex flex-col gap-4">
           <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
             {BRANDS.map((brand, idx) => (
@@ -520,7 +554,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Catalog Section */}
+        {/* Interactive Catalog Section */}
         <div className="mt-12">
           <div className="flex flex-col lg:flex-row gap-8 mb-16">
             
@@ -536,6 +570,7 @@ export default function App() {
                   )}
                 </div>
                 
+                {/* Animal Filter */}
                 <div className="mb-6">
                   <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Žival</h4>
                   <div className="flex flex-col gap-2">
@@ -551,6 +586,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Brand Filter */}
                 <div className="mb-6">
                   <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Znamka</h4>
                   <div className="flex flex-col gap-2">
@@ -566,6 +602,7 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Subcategory Filter */}
                 {availableSubcategories.length > 0 && (
                   <div className="mb-6">
                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Kategorija</h4>
@@ -610,6 +647,7 @@ export default function App() {
                   {gridProducts.map((product) => (
                     <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
                       
+                      {/* Tags */}
                       <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
                          <span className={`text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shadow-sm ${product.category === 'dog' ? 'bg-[#eae1f5] text-[#8154a8]' : 'bg-[#f4eefa] text-[#a48abf]'}`}>
                            {product.category === 'dog' ? 'PES' : 'MAČKA'}
@@ -619,6 +657,7 @@ export default function App() {
                          </span>
                       </div>
                       
+                      {/* Wishlist Heart */}
                       <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
                         <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
                       </button>
@@ -628,13 +667,12 @@ export default function App() {
                       <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
                       <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
                       
-                      <div className="mt-auto w-full flex items-center justify-between">
-                        <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
-                        <button
+                      <div className="mt-auto w-full flex flex-col gap-3">
+                        <span className="text-lg font-bold text-brand-orange text-center">{Number(product.price).toFixed(2)} €</span>
+                        <button 
                           onClick={() => addToCart(product)}
-                          className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors active:scale-95"
-                        >
-                          <ShoppingCart size={14} />
+                          className="bg-brand-olive text-white w-full rounded-full py-2.5 flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors gap-2 text-sm font-medium">
+                          <ShoppingCart size={16} /> Dodaj v košarico
                         </button>
                       </div>
                     </div>
@@ -647,138 +685,287 @@ export default function App() {
 
       </main>
 
-      {/* ===== CART DRAWER ===== */}
-      {/* Overlay */}
+      {/* Shopping Cart Drawer */}
       {isCartOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-          onClick={() => setIsCartOpen(false)}
-        />
-      )}
-
-      {/* Drawer */}
-      <div
-        className={`fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
-          isCartOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {/* Drawer Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-brand-beige">
-          <div className="flex items-center gap-3">
-            <ShoppingCart size={22} className="text-brand-olive" />
-            <h2 className="text-xl font-bold text-brand-brown">Vaša košarica</h2>
-            {cartCount > 0 && (
-              <span className="bg-brand-orange text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {cartCount}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => setIsCartOpen(false)}
-            className="text-gray-400 hover:text-brand-brown transition-colors p-1 rounded-full hover:bg-white"
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          {cartItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-4">
-              <ShoppingCart size={64} className="text-gray-200" strokeWidth={1} />
-              <p className="text-gray-400 font-medium text-lg">Košarica je prazna</p>
-              <p className="text-gray-300 text-sm">Dodajte izdelke in začnite z nakupom!</p>
-              <button
-                onClick={() => setIsCartOpen(false)}
-                className="mt-4 bg-brand-olive text-white px-6 py-3 rounded-full font-medium hover:bg-brand-brown transition-colors shadow-sm"
-              >
-                Pojdi na katalog
+        <div className="fixed inset-0 z-50 flex justify-end bg-brand-brown/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <h2 className="text-2xl font-bold text-brand-brown flex items-center gap-2">
+                <ShoppingCart size={24} className="text-brand-olive" />
+                Košarica
+              </h2>
+              <button onClick={() => setIsCartOpen(false)} className="text-gray-400 hover:text-brand-orange transition-colors">
+                <X size={24} />
               </button>
             </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {cartItems.map(item => (
-                <div key={item.id} className="flex items-center gap-4 bg-gray-50 rounded-2xl p-3 border border-gray-100">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="w-16 h-16 object-contain mix-blend-multiply flex-shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-brand-brown line-clamp-2 leading-tight">{item.name}</p>
-                    <p className="text-brand-orange font-bold mt-1">{item.price.toFixed(2)} €</p>
-                    {/* Quantity controls */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <button
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-brand-olive hover:text-brand-olive transition-colors"
-                      >
-                        <Minus size={12} />
-                      </button>
-                      <span className="text-sm font-bold text-brand-brown w-4 text-center">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, 1)}
-                        className="w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-brand-olive hover:text-brand-olive transition-colors"
-                      >
-                        <Plus size={12} />
-                      </button>
+            
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+              {cart.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+                  <ShoppingCart size={48} className="text-gray-300" />
+                  <p>Vaša košarica je prazna.</p>
+                  <button onClick={() => setIsCartOpen(false)} className="mt-4 bg-brand-olive px-6 py-2 rounded-full text-white hover:bg-brand-brown transition-colors">
+                    Nadaljuj z nakupovanjem
+                  </button>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.product.id} className="flex gap-4 border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                    <img src={item.product.image_url} alt={item.product.name} className="w-20 h-20 object-contain rounded-xl bg-gray-50 p-2" />
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-brand-brown line-clamp-2">{item.product.name}</h4>
+                        <div className="text-brand-orange font-bold mt-1">{(parseFloat(item.product.price) * item.quantity).toFixed(2)} €</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => updateCartQuantity(item.product.id, -1)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-brand-olive hover:text-white transition-colors">
+                          <Minus size={14} />
+                        </button>
+                        <span className="font-medium text-brand-brown w-4 text-center">{item.quantity}</span>
+                        <button onClick={() => updateCartQuantity(item.product.id, 1)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-brand-olive hover:text-white transition-colors">
+                          <Plus size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                    <p className="text-sm font-bold text-brand-brown">{(item.price * item.quantity).toFixed(2)} €</p>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="text-gray-300 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={16} />
+                ))
+              )}
+            </div>
+
+            {cart.length > 0 && (
+              <div className="p-6 bg-gray-50 border-t border-gray-100 shrink-0">
+                <div className="flex justify-between items-center mb-2 text-sm text-gray-600">
+                  <span>Izdelki:</span>
+                  <span>{cartTotalPrice.toFixed(2)} €</span>
+                </div>
+                <div className="flex justify-between items-center mb-4 text-sm text-gray-600">
+                  <span>Pričakovana dostava:</span>
+                  <span>{cartTotalPrice >= 49 ? 'Brezplačno' : '3,90 €'}</span>
+                </div>
+                <div className="flex justify-between items-center mb-6 text-xl font-bold text-brand-brown">
+                  <span>Skupaj:</span>
+                  <span className="text-brand-orange">{(cartTotalPrice + (cartTotalPrice >= 49 ? 0 : 3.9)).toFixed(2)} €</span>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    setIsCheckoutOpen(true);
+                  }}
+                  className="w-full bg-brand-orange text-white py-4 rounded-xl font-bold text-lg shadow-md hover:bg-opacity-90 hover:shadow-xl transition-all"
+                >
+                  Zaključi nakup
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Multi-Step Modal */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-brown/50 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-2xl shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <button 
+              onClick={() => setIsCheckoutOpen(false)}
+              className="absolute top-6 right-6 text-gray-400 hover:text-brand-orange transition-colors"
+            >
+              <X size={24} />
+            </button>
+            
+            {/* Progress Bar */}
+            <div className="mb-8">
+              <div className="flex items-center justify-center gap-4 md:gap-8">
+                {[1, 2, 3].map(step => (
+                  <div key={step} className="flex flex-col items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base transition-colors ${
+                      checkoutStep === step 
+                        ? 'bg-brand-orange text-white ring-4 ring-brand-orange/20' 
+                        : checkoutStep > step 
+                          ? 'bg-brand-olive text-white' 
+                          : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      {checkoutStep > step ? <CheckCircle size={20} /> : step}
+                    </div>
+                    <span className={`text-[10px] md:text-xs font-medium uppercase tracking-wider ${
+                      checkoutStep >= step ? 'text-brand-brown' : 'text-gray-400'
+                    }`}>
+                      {step === 1 ? 'Dostava' : step === 2 ? 'Plačilo' : 'Potrditev'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <form onSubmit={checkoutStep === 3 ? handleCheckoutSubmit : (e) => { e.preventDefault(); setCheckoutStep(prev => prev + 1); }} className="space-y-6">
+              
+              {/* STEP 1: DOSTAVA */}
+              {checkoutStep === 1 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  <h3 className="text-xl font-bold text-brand-brown mb-6 flex items-center gap-2">
+                    <MapPin className="text-brand-olive" size={24}/> Podatki za dostavo
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Ime in priimek *</label>
+                      <input required type="text" value={checkoutData.imePriimek} onChange={e => setCheckoutData({...checkoutData, imePriimek: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">E-pošta *</label>
+                      <input required type="email" value={checkoutData.email} onChange={e => setCheckoutData({...checkoutData, email: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Telefon *</label>
+                      <input required type="tel" value={checkoutData.telefon} onChange={e => setCheckoutData({...checkoutData, telefon: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Ulica in hišna št. *</label>
+                      <input required type="text" value={checkoutData.ulica} onChange={e => setCheckoutData({...checkoutData, ulica: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Poštna številka *</label>
+                      <input required type="text" value={checkoutData.postnaSt} onChange={e => setCheckoutData({...checkoutData, postnaSt: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Mesto *</label>
+                      <input required type="text" value={checkoutData.mesto} onChange={e => setCheckoutData({...checkoutData, mesto: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-brand-olive focus:ring-1 focus:ring-brand-olive bg-gray-50 focus:bg-white transition-all" />
+                    </div>
+                  </div>
+                  <div className="mt-8 flex justify-end">
+                    <button type="submit" className="bg-brand-olive text-white px-8 py-3 rounded-xl font-bold hover:bg-brand-brown transition-colors flex items-center gap-2">
+                       Naprej <ChevronRight size={20} />
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
 
-        {/* Drawer Footer */}
-        {cartItems.length > 0 && (
-          <div className="border-t border-gray-100 px-6 py-5 bg-white">
-            {/* Free shipping progress */}
-            {cartTotal < 49 && (
-              <div className="mb-4">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                  <span>Do brezplačne dostave manjka</span>
-                  <span className="font-bold text-brand-olive">{(49 - cartTotal).toFixed(2)} €</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-2">
-                  <div
-                    className="bg-brand-olive h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((cartTotal / 49) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-            {cartTotal >= 49 && (
-              <div className="mb-4 text-center text-sm text-brand-olive font-medium bg-green-50 py-2 rounded-xl border border-green-100">
-                🎉 Brezplačna dostava!
-              </div>
-            )}
+              {/* STEP 2: PLAČILO */}
+              {checkoutStep === 2 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  <h3 className="text-xl font-bold text-brand-brown mb-6 flex items-center gap-2">
+                    <CreditCard className="text-brand-olive" size={24}/> Način plačila
+                  </h3>
+                  
+                  <div className="space-y-4 mb-8">
+                    <label className={`flex items-start gap-4 p-4 border rounded-2xl cursor-pointer transition-all ${checkoutData.nacinPlacila === 'povzetje' ? 'border-brand-olive bg-brand-olive/5 ring-1 ring-brand-olive' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" className="mt-1 flex-shrink-0" name="nacinPlacila" checked={checkoutData.nacinPlacila === 'povzetje'} onChange={() => setCheckoutData({...checkoutData, nacinPlacila: 'povzetje'})} />
+                      <div>
+                        <div className="font-bold text-brand-brown">Po povzetku z gotovino / kartico</div>
+                        <p className="text-sm text-gray-500 mt-1">Plačilo ob prevzemu. Velja doplačilo 1,50 € za provizijo poštne službe.</p>
+                      </div>
+                    </label>
 
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-brand-brown font-medium">Skupaj:</span>
-              <span className="text-2xl font-bold text-brand-orange">{cartTotal.toFixed(2)} €</span>
-            </div>
-            <button className="w-full bg-brand-orange text-white py-4 rounded-2xl font-bold text-lg hover:bg-brand-orange/90 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95">
-              Zaključi nakup
-            </button>
-            <button
-              onClick={() => setIsCartOpen(false)}
-              className="w-full mt-2 text-sm text-gray-400 hover:text-brand-brown transition-colors py-2"
-            >
-              Nadaljuj z nakupovanjem
-            </button>
+                    <label className={`flex items-start gap-4 p-4 border rounded-2xl cursor-pointer transition-all ${checkoutData.nacinPlacila === 'kartica' ? 'border-brand-olive bg-brand-olive/5 ring-1 ring-brand-olive' : 'border-gray-200 hover:border-gray-300'}`}>
+                      <input type="radio" className="mt-1 flex-shrink-0" name="nacinPlacila" checked={checkoutData.nacinPlacila === 'kartica'} onChange={() => setCheckoutData({...checkoutData, nacinPlacila: 'kartica'})} />
+                      <div className="w-full">
+                        <div className="font-bold text-brand-brown">Kartično plačilo (Kmalu)</div>
+                        <p className="text-sm text-gray-500 mt-1 mb-4">Plačilo preko spleta.</p>
+                        
+                        {checkoutData.nacinPlacila === 'kartica' && (
+                          <div className="grid grid-cols-2 gap-4 mt-4 opacity-50 pointer-events-none">
+                            <div className="col-span-2 space-y-1">
+                              <label className="text-xs font-medium">Številka kartice</label>
+                              <input type="text" placeholder="0000 0000 0000 0000" className="w-full px-3 py-2 rounded-lg border bg-white" />
+                            </div>
+                            <div className="col-span-2 space-y-1">
+                              <label className="text-xs font-medium">Ime na kartici</label>
+                              <input type="text" placeholder="Ime Priimek" className="w-full px-3 py-2 rounded-lg border bg-white" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium">Datum</label>
+                              <input type="text" placeholder="MM/YY" className="w-full px-3 py-2 rounded-lg border bg-white" />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium">CVV</label>
+                              <input type="text" placeholder="123" className="w-full px-3 py-2 rounded-lg border bg-white" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+
+                  <div className="flex justify-between mt-8">
+                    <button type="button" onClick={() => setCheckoutStep(1)} className="px-6 py-3 rounded-xl font-bold text-brand-brown hover:bg-gray-100 transition-colors flex items-center gap-2">
+                       <ChevronLeft size={20} /> Nazaj
+                    </button>
+                    <button type="submit" className="bg-brand-olive text-white px-8 py-3 rounded-xl font-bold hover:bg-brand-brown transition-colors flex items-center gap-2" disabled={checkoutData.nacinPlacila === 'kartica'}>
+                       Naprej <ChevronRight size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3: POTRDITEV */}
+              {checkoutStep === 3 && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                  <h3 className="text-xl font-bold text-brand-brown mb-6 flex items-center gap-2">
+                    <CheckCircle className="text-brand-orange" size={24}/> Potrditev naročila
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Prejemnik & Dostava</h4>
+                      <p className="font-medium text-brand-brown">{checkoutData.imePriimek}</p>
+                      <p className="text-gray-600">{checkoutData.ulica}</p>
+                      <p className="text-gray-600">{checkoutData.postnaSt} {checkoutData.mesto}</p>
+                      <p className="text-gray-600 mt-2">{checkoutData.telefon}</p>
+                      <p className="text-gray-600">{checkoutData.email}</p>
+                      
+                      <div className="mt-4 p-3 bg-brand-olive/5 rounded-xl border border-brand-olive/20">
+                         <span className="text-sm font-bold text-brand-olive flex items-center gap-2"><Truck size={16}/> Način plačila:</span>
+                         <span className="text-sm text-brand-brown">{checkoutData.nacinPlacila === 'povzetje' ? 'Po povzetku' : 'Kartica'}</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Izdelki</h4>
+                      <div className="max-h-[150px] overflow-y-auto space-y-3 pr-2 border-b border-dashed border-gray-200 pb-4 mb-4">
+                        {cart.map(item => (
+                          <div key={item.product.id} className="flex justify-between items-center text-sm">
+                            <span className="text-gray-600 line-clamp-1 flex-1 pr-4">{item.quantity}x {item.product.name}</span>
+                            <span className="font-medium text-brand-brown shrink-0">{(parseFloat(item.product.price) * item.quantity).toFixed(2)} €</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <div className="flex justify-between">
+                          <span>Vmesna vsota:</span>
+                          <span>{cartTotalPrice.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Dostava:</span>
+                          <span>{cartShippingCost > 0 ? `${cartShippingCost.toFixed(2)} €` : 'Brezplačno'}</span>
+                        </div>
+                        {cartCodFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Provizija prevzema:</span>
+                            <span>{cartCodFee.toFixed(2)} €</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-lg font-bold text-brand-brown pt-2 border-t mt-2">
+                          <span>Skupaj za plačilo:</span>
+                          <span className="text-brand-orange">{cartFinalPrice.toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between mt-8">
+                    <button type="button" onClick={() => setCheckoutStep(2)} className="px-6 py-3 rounded-xl font-bold text-brand-brown hover:bg-gray-100 transition-colors flex items-center gap-2">
+                       <ChevronLeft size={20} /> Nazaj
+                    </button>
+                    <button type="submit" disabled={isOrderSubmitting} className="bg-brand-orange text-white px-8 py-3 rounded-xl font-bold text-lg hover:bg-opacity-90 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50">
+                       {isOrderSubmitting ? 'Pošiljanje...' : 'Zaključi nakup'} <CheckCircle size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Auth Modal */}
       {showAuthModal && (
@@ -796,6 +983,7 @@ export default function App() {
                <div>
                   <h2 className="text-2xl font-bold text-brand-brown mb-2">Vaš profil</h2>
                   <p className="text-sm text-gray-600 mb-6">Prijavljeni ste kot: <strong className="text-brand-olive">{user.email}</strong></p>
+                  
                   <button onClick={handleLogout} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-medium hover:bg-red-100 transition-colors shadow-sm cursor-pointer">
                     Odjava
                   </button>
@@ -847,6 +1035,7 @@ export default function App() {
                  </div>
                </div>
             )}
+            
           </div>
         </div>
       )}
@@ -866,7 +1055,10 @@ export default function App() {
             <h2 className="text-2xl font-bold text-brand-brown mb-2">Zahtevaj klic</h2>
             <p className="text-sm text-gray-600 mb-6">Pustite svoje podatke in poklicali vas bomo v najkrajšem možnem času.</p>
             
-            <form className="flex flex-col gap-4" onSubmit={handleCallRequestSubmit}>
+            <form 
+              className="flex flex-col gap-4" 
+              onSubmit={handleCallRequestSubmit}
+            >
               <div>
                 <label className="block text-sm font-medium text-brand-brown mb-1">Ime in priimek</label>
                 <input type="text" name="name" required className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-brand-olive focus:outline-none focus:ring-1 focus:ring-brand-olive transition-all" placeholder="Vaše ime" />
