@@ -152,14 +152,14 @@ export default function App() {
   );
 
   const gridProducts = products.filter(p => {
-    if (filterAnimal !== 'all' && p.category !== filterAnimal) return false;
+    if (filterAnimal !== 'all' && !p.category.includes(filterAnimal)) return false;
     if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
     if (filterSubcategory !== 'all' && p.subcategory !== filterSubcategory) return false;
     return true;
   });
 
   const availableSubcategories = Array.from(new Set(products.filter(p => {
-     if (filterAnimal !== 'all' && p.category !== filterAnimal) return false;
+     if (filterAnimal !== 'all' && !p.category.includes(filterAnimal)) return false;
      if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
      return !!p.subcategory;
   }).map(p => p.subcategory))).sort();
@@ -480,7 +480,7 @@ export default function App() {
                 <div className="mb-6">
                   <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Znamka</h4>
                   <div className="flex flex-col gap-2">
-                    {['all', 'Wanpy', 'MIAMOR', 'Farmina', 'RINTI', 'Brit Premium', 'Brit Care', 'Brit Fresh'].map(brand => (
+                    {['all', 'Wanpy', 'MIAMOR', 'Farmina', 'RINTI', 'Brit Premium', 'Brit Care', 'Brit Fresh', 'Brit', 'VetaPro', 'Alpha Spirit'].map(brand => (
                       <button 
                         key={brand}
                         onClick={() => { setFilterBrand(brand); setFilterSubcategory('all'); }}
