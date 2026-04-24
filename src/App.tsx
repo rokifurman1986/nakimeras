@@ -5,8 +5,12 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X, Minus, Plus, CreditCard, Truck, CheckCircle } from 'lucide-react';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { FALLBACK_PRODUCTS } from './data/products';
+import HomePage from './pages/HomePage';
+import CatalogPage from './pages/CatalogPage';
+import ProductPage from './pages/ProductPage';
 
 const BRANDS = [
   { name: 'Royal Canin', logo: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=150&h=80' },
@@ -29,11 +33,8 @@ export default function App() {
   const searchRef = useRef<HTMLDivElement>(null);
   const catalogRef = useRef<HTMLDivElement>(null);
 
-  // Filter State
-  const [filterAnimal, setFilterAnimal] = useState<'all' | 'dog' | 'cat'>('all');
-  const [filterBrand, setFilterBrand] = useState<string>('all');
-  const [filterSubcategory, setFilterSubcategory] = useState<string>('all');
-
+  // Filter State removed
+  
   // Auth State
   const [user, setUser] = useState<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -179,25 +180,6 @@ export default function App() {
     product.sifra?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const gridProducts = products.filter(p => {
-    if (filterAnimal !== 'all' && !p.category.includes(filterAnimal)) return false;
-    if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
-    if (filterSubcategory !== 'all' && p.subcategory !== filterSubcategory) return false;
-    return true;
-  });
-
-  const availableSubcategories = Array.from(new Set(products.filter(p => {
-     if (filterAnimal !== 'all' && !p.category.includes(filterAnimal)) return false;
-     if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
-     return !!p.subcategory;
-  }).map(p => p.subcategory))).sort();
-
-  const resetFilters = () => {
-    setFilterAnimal('all');
-    setFilterBrand('all');
-    setFilterSubcategory('all');
-  };
-
   const addToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.product.id === product.id);
@@ -331,9 +313,9 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-8">
           
           {/* Custom Logo Replacement matching the user's uploaded logo */}
-          <a href="/" className="flex-shrink-0 flex flex-col items-center cursor-pointer group">
+          <Link to="/" className="flex-shrink-0 flex flex-col items-center cursor-pointer group">
             <img src="/logo.png" alt="Nakimera's Logo" className="max-h-[80px] w-auto object-contain group-hover:scale-105 transition-transform duration-300" />
-          </a>
+          </Link>
 
           {/* Location & Free Shipping Info above search */}
           <div className="flex-1 flex flex-col gap-2 max-w-3xl ml-4">
@@ -361,14 +343,14 @@ export default function App() {
                 <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-2xl shadow-xl border border-gray-100 py-3 z-50 max-h-[400px] overflow-y-auto">
                   {filteredProducts.length > 0 ? (
                     filteredProducts.map(product => (
-                      <a key={product.id} href="#" className="flex items-center gap-4 px-4 py-3 hover:bg-brand-beige transition-colors border-b border-gray-50 last:border-0" onClick={() => setIsSearchOpen(false)}>
-                         <img src={product.image} alt={product.name} className="w-12 h-12 object-cover rounded-md" />
+                      <Link key={product.id} to={`/izdelek/${product.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-brand-beige transition-colors border-b border-gray-50 last:border-0" onClick={() => setIsSearchOpen(false)}>
+                         <img src={product.image_url} alt={product.name} className="w-12 h-12 object-cover rounded-md" />
                          <div className="flex-1">
                            <h4 className="text-sm font-medium text-brand-brown">{product.name}</h4>
                            <p className="text-xs text-gray-500 line-clamp-1">{product.description}</p>
                          </div>
                          <div className="flex items-center gap-4">
-                           <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{typeof product.price === 'number' ? product.price.toFixed(2) : product.price} €</span>
+                           <span className="text-brand-orange font-bold text-sm whitespace-nowrap">{typeof product.price === 'number' ? product.price.toFixed(2) : Number(product.price).toFixed(2)} €</span>
                            <button 
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }} 
                               className="text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
@@ -376,7 +358,7 @@ export default function App() {
                               <Heart size={18} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
                            </button>
                          </div>
-                      </a>
+                      </Link>
                     ))
                   ) : (
                     <div className="px-5 py-4 text-sm text-gray-500 text-center">Ni rezultatov za vaše iskanje</div>
@@ -424,14 +406,15 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex items-center gap-8">
           
           {/* Catalog Button */}
-          <button 
+          <Link 
+            to="/katalog"
             className="flex items-center gap-3 bg-brand-olive text-white px-8 py-4 rounded-b-xl hover:bg-brand-olive-hover transition-colors font-medium relative -top-1 shadow-md"
             onMouseEnter={() => setActiveMenu(true)}
             onMouseLeave={() => setActiveMenu(false)}
           >
             <span className="text-lg">Katalog</span>
             <Menu size={20} />
-          </button>
+          </Link>
 
           {/* Mega Menu Dropdown */}
           {activeMenu && (
@@ -441,19 +424,19 @@ export default function App() {
               onMouseLeave={() => setActiveMenu(false)}
             >
               {products.some(p => p.category === 'dog') && (
-                <div onClick={() => { setFilterAnimal('dog'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Psi</div>
+                <Link to="/katalog/psi" onClick={() => setActiveMenu(false)} className="block px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Psi</Link>
               )}
               {products.some(p => p.category === 'cat') && (
-                <div onClick={() => { setFilterAnimal('cat'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Mačke</div>
+                <Link to="/katalog/macke" onClick={() => setActiveMenu(false)} className="block px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Mačke</Link>
               )}
               {products.some(p => p.category === 'small_animal') && (
-                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Male živali</div>
+                <Link to="/katalog/male_zivali" onClick={() => setActiveMenu(false)} className="block px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Male živali</Link>
               )}
               {products.some(p => p.category === 'bird') && (
-                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Ptice</div>
+                <Link to="/katalog/ptice" onClick={() => setActiveMenu(false)} className="block px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Ptice</Link>
               )}
               {products.some(p => p.category === 'reptile') && (
-                <div onClick={() => { setFilterAnimal('all'); setActiveMenu(false); catalogRef.current?.scrollIntoView({ behavior: 'smooth' }); }} className="px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Teraristika</div>
+                <Link to="/katalog/teraristika" onClick={() => setActiveMenu(false)} className="block px-6 py-2 hover:bg-brand-beige hover:text-brand-olive cursor-pointer font-medium transition-colors">Teraristika</Link>
               )}
             </div>
           )}
@@ -473,230 +456,13 @@ export default function App() {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-8 relative">
-        
-        {/* Top Grid: Hero + Product of the Day */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-          
-          {/* Hero Banner */}
-          <div className="lg:col-span-3 bg-[#EAE1F5] rounded-3xl p-10 flex items-center justify-between relative overflow-hidden group shadow-sm hover:shadow-md transition-shadow">
-            <div className="absolute inset-0 z-0">
-              <img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&q=80&w=1200" alt="Dogs and Cats" className="w-full h-full object-cover object-center opacity-30 mix-blend-multiply transition-transform duration-700 group-hover:scale-105" />
-            </div>
-            
-            <div className="relative z-10 max-w-sm">
-              <h1 className="text-4xl md:text-5xl font-bold text-brand-olive leading-tight mb-3">
-                OKUSNE NOVOSTI
-              </h1>
-              <p className="text-xl text-brand-brown mb-8 font-medium">za vaše najboljše prijatelje!</p>
-              
-              <button className="bg-brand-orange text-white px-8 py-3 rounded-full font-medium text-lg hover:bg-brand-orange/90 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                Poglej več
-              </button>
-            </div>
-
-            {/* Simulated animal heads for absolute positioning */}
-            <div className="relative z-10 hidden md:block w-72 h-72">
-                 <div className="absolute top-1/2 -left-12 bg-white px-4 py-2 rounded-full shadow-md transform -rotate-6 text-brand-brown font-medium italic animate-bounce-slow">
-                    Mjav!
-                 </div>
-            </div>
-
-            {/* Slider controls */}
-            <button className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-olive/40 hover:text-brand-olive font-bold z-20 transition-colors bg-white/40 hover:bg-white/80 rounded-full p-2">
-              <ChevronLeft size={32} strokeWidth={1.5} />
-            </button>
-            <button className="absolute right-4 top-1/2 -translate-y-1/2 text-brand-olive/40 hover:text-brand-olive font-bold z-20 transition-colors bg-white/40 hover:bg-white/80 rounded-full p-2">
-              <ChevronRight size={32} strokeWidth={1.5} />
-            </button>
-            
-            {/* Dots */}
-            <div className="absolute bottom-6 right-10 z-20 flex gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-orange shadow-sm"></div>
-              <div className="w-3 h-3 rounded-full bg-brand-olive/20 hover:bg-brand-olive/40 cursor-pointer transition-colors shadow-sm"></div>
-              <div className="w-3 h-3 rounded-full bg-brand-olive/20 hover:bg-brand-olive/40 cursor-pointer transition-colors shadow-sm"></div>
-              <div className="w-3 h-3 rounded-full bg-brand-olive/20 hover:bg-brand-olive/40 cursor-pointer transition-colors shadow-sm"></div>
-            </div>
-          </div>
-
-          {/* Product of the Day */}
-          <div className="lg:col-span-1 bg-white rounded-3xl border border-brand-beige shadow-sm hover:shadow-md transition-shadow p-6 flex flex-col relative text-center">
-            
-            {/* Wishlist Button for Product of the Day */}
-            {products.length > 0 && (
-              <button 
-                onClick={(e) => { e.preventDefault(); toggleWishlist(products[0].id); }}
-                className="absolute top-6 right-6 z-20 text-gray-300 hover:text-brand-orange transition-colors cursor-pointer"
-              >
-                <Heart size={22} fill={wishlistIds.includes(products[0].id) ? 'currentColor' : 'none'} className={wishlistIds.includes(products[0].id) ? 'text-brand-orange' : ''} />
-              </button>
-            )}
-
-            <div className="flex justify-between items-start mb-6">
-              <span className="text-brand-brown font-bold uppercase tracking-wide text-sm">Izdelek dneva</span>
-            </div>
-            
-            <div className="flex-1 flex justify-center items-center mb-6 group cursor-pointer relative">
-               <div className="absolute inset-0 bg-brand-beige/40 rounded-full scale-0 group-hover:scale-110 transition-transform duration-300"></div>
-              <img src={products[0]?.image_url || "https://placehold.co/300x300"} alt="Izdelek" className="h-48 object-contain mix-blend-multiply relative z-10 group-hover:rotate-2 transition-transform" />
-            </div>
-
-            <div className="mt-auto">
-              <p className="text-xs text-gray-600 mb-3 leading-relaxed hover:text-brand-olive cursor-pointer transition-colors line-clamp-2">
-                {products[0]?.name || "Nalagam izdelek..."}
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <span className="text-2xl font-bold text-brand-orange">{products[0]?.price ? Number(products[0].price).toFixed(2) : '-.--'} €</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Brands Carousel Area */}
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
-            {BRANDS.map((brand, idx) => (
-              <div key={idx} className="bg-white min-w-[200px] h-24 rounded-2xl border border-brand-beige shadow-sm flex items-center justify-center p-4 hover:shadow-md hover:border-brand-olive/30 transition-all cursor-pointer flex-shrink-0 group">
-                  <div className="text-xl font-bold text-brand-brown group-hover:text-brand-olive transition-colors">{brand.name}</div>
-              </div>
-            ))}
-          </div>
-          <div className="text-right">
-             <a href="#" className="text-sm text-gray-500 hover:text-brand-olive font-medium flex items-center justify-end gap-1 transition-colors">
-               Vse znamke <ChevronRight size={14}/>
-             </a>
-          </div>
-        </div>
-
-        {/* Interactive Catalog Section */}
-        <div ref={catalogRef} className="mt-12">
-          <div className="flex flex-col lg:flex-row gap-8 mb-16">
-            
-            {/* Filter Sidebar */}
-            <div className="w-full lg:w-64 flex-shrink-0 space-y-8">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-brand-brown">Filtri</h3>
-                  {(filterAnimal !== 'all' || filterBrand !== 'all' || filterSubcategory !== 'all') && (
-                    <button onClick={resetFilters} className="text-sm text-brand-orange hover:underline font-medium">
-                      Počisti filtre
-                    </button>
-                  )}
-                </div>
-                
-                {/* Animal Filter */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Žival</h4>
-                  <div className="flex flex-col gap-2">
-                    {['all', 'dog', 'cat'].map(animal => (
-                      <button 
-                        key={animal}
-                        onClick={() => { setFilterAnimal(animal as any); setFilterSubcategory('all'); }}
-                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterAnimal === animal ? 'bg-brand-olive text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                      >
-                        {animal === 'all' ? 'Vse živali' : animal === 'dog' ? 'Psi' : 'Mačke'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Brand Filter */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Znamka</h4>
-                  <div className="flex flex-col gap-2">
-                    {['all', 'Wanpy', 'MIAMOR', 'Farmina', 'Farmina N&D', 'Farmina Vet Life', 'Farmina Ecopet', 'Farmina Cibau', 'Farmina Fun Cat', 'Farmina Fun Dog', 'RINTI', 'Brit Premium', 'Brit Care', 'Brit Fresh', 'Brit', 'VetaPro', 'Alpha Spirit', 'Josera'].map(brand => (
-                      <button 
-                        key={brand}
-                        onClick={() => { setFilterBrand(brand); setFilterSubcategory('all'); }}
-                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterBrand === brand ? 'bg-brand-orange text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                      >
-                        {brand === 'all' ? 'Vse znamke' : brand}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Subcategory Filter */}
-                {availableSubcategories.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Kategorija</h4>
-                    <div className="flex flex-col gap-2">
-                      <button 
-                        onClick={() => setFilterSubcategory('all')}
-                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterSubcategory === 'all' ? 'bg-brand-brown text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                      >
-                        Vse kategorije
-                      </button>
-                      {availableSubcategories.map(subcat => (
-                        <button 
-                          key={subcat}
-                          onClick={() => setFilterSubcategory(subcat)}
-                          className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterSubcategory === subcat ? 'bg-brand-brown text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                        >
-                          {subcat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Product Grid */}
-            <div className="flex-1">
-              <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
-                Katalog Izdelkov
-                <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
-              </h2>
-              
-              {gridProducts.length === 0 ? (
-                <div className="text-center py-16 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                  <p className="text-gray-500 font-medium">Ni rezultatov za izbrane filtre.</p>
-                  <button onClick={resetFilters} className="mt-4 bg-brand-olive text-white px-6 py-2 rounded-full shadow-sm hover:bg-brand-brown transition-colors">
-                    Prikaži vse izdelke
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {gridProducts.map((product) => (
-                    <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
-                      
-                      {/* Tags */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
-                         <span className={`text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shadow-sm ${product.category === 'dog' ? 'bg-[#eae1f5] text-[#8154a8]' : 'bg-[#f4eefa] text-[#a48abf]'}`}>
-                           {product.category === 'dog' ? 'PES' : 'MAČKA'}
-                         </span>
-                         <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider border border-gray-200 shadow-sm">
-                           {product.brand}
-                         </span>
-                      </div>
-                      
-                      {/* Wishlist Heart */}
-                      <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
-                        <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
-                      </button>
-
-                      <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4 mt-10" />
-                      
-                      <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
-                      <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
-                      
-                      <div className="mt-auto w-full flex flex-col gap-3">
-                        <span className="text-lg font-bold text-brand-orange text-center">{Number(product.price).toFixed(2)} €</span>
-                        <button 
-                          onClick={() => addToCart(product)}
-                          className="bg-brand-olive text-white w-full rounded-full py-2.5 flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors gap-2 text-sm font-medium">
-                          <ShoppingCart size={16} /> Dodaj v košarico
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+      <main className="flex-1 w-full bg-brand-light relative">
+        <Routes>
+          <Route path="/" element={<HomePage products={products} wishlistIds={wishlistIds} toggleWishlist={toggleWishlist} addToCart={addToCart} />} />
+          <Route path="/katalog" element={<CatalogPage products={products} wishlistIds={wishlistIds} toggleWishlist={toggleWishlist} addToCart={addToCart} />} />
+          <Route path="/katalog/:category" element={<CatalogPage products={products} wishlistIds={wishlistIds} toggleWishlist={toggleWishlist} addToCart={addToCart} />} />
+          <Route path="/izdelek/:id" element={<ProductPage products={products} wishlistIds={wishlistIds} toggleWishlist={toggleWishlist} addToCart={addToCart} />} />
+        </Routes>
       </main>
 
       {/* Shopping Cart Drawer */}
