@@ -853,7 +853,7 @@ export default function App() {
                     <label className={`flex items-start gap-4 p-4 border rounded-2xl cursor-pointer transition-all ${checkoutData.nacinPlacila === 'povzetje' ? 'border-brand-olive bg-brand-olive/5 ring-1 ring-brand-olive' : 'border-gray-200 hover:border-gray-300'}`}>
                       <input type="radio" className="mt-1 flex-shrink-0" name="nacinPlacila" checked={checkoutData.nacinPlacila === 'povzetje'} onChange={() => setCheckoutData({...checkoutData, nacinPlacila: 'povzetje'})} />
                       <div>
-                        <div className="font-bold text-brand-brown">Po povzetku z gotovino / kartico</div>
+                        <div className="font-bold text-brand-brown">Po povzetju z gotovino / kartico</div>
                         <p className="text-sm text-gray-500 mt-1">Plačilo ob prevzemu. Velja doplačilo 1,50 € za provizijo poštne službe.</p>
                       </div>
                     </label>
@@ -917,7 +917,7 @@ export default function App() {
                       
                       <div className="mt-4 p-3 bg-brand-olive/5 rounded-xl border border-brand-olive/20">
                          <span className="text-sm font-bold text-brand-olive flex items-center gap-2"><Truck size={16}/> Način plačila:</span>
-                         <span className="text-sm text-brand-brown">{checkoutData.nacinPlacila === 'povzetje' ? 'Po povzetku' : 'Kartica'}</span>
+                         <span className="text-sm text-brand-brown">{checkoutData.nacinPlacila === 'povzetje' ? 'Po povzetju' : 'Kartica'}</span>
                       </div>
                     </div>
                     
@@ -1112,7 +1112,7 @@ export default function App() {
                   <li className="flex items-start gap-3">
                     <div className="bg-brand-olive/10 p-2 rounded-full mt-1 shrink-0"><CheckCircle size={16} className="text-brand-olive"/></div>
                     <div>
-                      <span className="font-medium text-brand-brown">Po povzetku</span>
+                      <span className="font-medium text-brand-brown">Po povzetju</span>
                       <p className="text-sm text-gray-500">Gotovina ali kartica ob prevzemu (+ 1,50 € provizija)</p>
                     </div>
                   </li>
