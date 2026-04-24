@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, User, Search, MapPin, Heart, Menu, Phone, ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { supabase } from './lib/supabase';
+import { FALLBACK_PRODUCTS } from './data/products';
 
 const BRANDS = [
   { name: 'Royal Canin', logo: 'https://images.unsplash.com/photo-1516589178581-6cd72166946e?auto=format&fit=crop&q=80&w=150&h=80' },
@@ -13,20 +14,6 @@ const BRANDS = [
   { name: 'Orijen', logo: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=150&h=80' },
   { name: 'N&D', logo: 'https://images.unsplash.com/photo-1585845012574-e85df6def852?auto=format&fit=crop&q=80&w=150&h=80' },
   { name: 'Monge', logo: 'https://images.unsplash.com/photo-1576201836106-db1758fd1c97?auto=format&fit=crop&q=80&w=150&h=80' },
-];
-
-const FALLBACK_PRODUCTS = [
-  { id: 1, sifra: 'WP87108', name: 'Wanpy Cat Creamy lickable treats-chicken', category: 'cat', price: 1.44, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87108 | EAN: 6927749871088' },
-  { id: 2, sifra: 'WP87109', name: 'Wanpy Cat Creamy lickable treats-tuna&shrimp', category: 'cat', price: 1.44, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87109 | EAN: 6927749871095' },
-  { id: 3, sifra: 'WP87123', name: 'Wanpy Cat Creamy treat Chicken&Crab 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87123 | EAN: 6927749871248' },
-  { id: 4, sifra: 'WP87122', name: 'Wanpy Cat Creamy treat Tuna&Crab 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87122 | EAN: 6927749871231' },
-  { id: 5, sifra: 'WP87121', name: 'Wanpy Cat Creamy treat Tuna&Shrimp 350g', category: 'cat', price: 7.22, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP87121 | EAN: 6927749871149' },
-  { id: 6, sifra: 'WP81147', name: 'Wanpy Cat Freeze dried shrimp 20g', category: 'cat', price: 2.03, image_url: 'https://placehold.co/300x300/f4eefa/8154a8?text=Wanpy+Cat', description: 'Šifra: WP81147 | EAN: 6927749811473' },
-  { id: 11, sifra: 'WP89500', name: 'Wanpy Christmas Calendars 100g', category: 'dog', price: 6.79, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP89500 | EAN: 6927749813088' },
-  { id: 13, sifra: 'WP83022', name: 'Wanpy Dog Beef Marbled Bites 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP83022 | EAN: 6927749830221' },
-  { id: 14, sifra: 'WP81065', name: 'Wanpy Dog Chicken Chips 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP81065 | EAN: 6927749810650' },
-  { id: 25, sifra: 'WP87022', name: 'Wanpy Dog Meat Paste Beef&Carrot&Pea', category: 'dog', price: 1.69, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP87022 | EAN: 6927749870227' },
-  { id: 29, sifra: 'WP86901', name: 'Wanpy Dog Toothbrush Chews Chicken 100g', category: 'dog', price: 2.54, image_url: 'https://placehold.co/300x300/eae1f5/8154a8?text=Wanpy+Dog', description: 'Šifra: WP86901 | EAN: 6927749869016' }
 ];
 
 export default function App() {
@@ -37,6 +24,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Filter State
+  const [filterAnimal, setFilterAnimal] = useState<'all' | 'dog' | 'cat'>('all');
+  const [filterBrand, setFilterBrand] = useState<string>('all');
+  const [filterSubcategory, setFilterSubcategory] = useState<string>('all');
 
   // Auth State
   const [user, setUser] = useState<any>(null);
@@ -159,8 +151,24 @@ export default function App() {
     product.sifra?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const dogProducts = products.filter(p => p.category === 'dog');
-  const catProducts = products.filter(p => p.category === 'cat');
+  const gridProducts = products.filter(p => {
+    if (filterAnimal !== 'all' && p.category !== filterAnimal) return false;
+    if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
+    if (filterSubcategory !== 'all' && p.subcategory !== filterSubcategory) return false;
+    return true;
+  });
+
+  const availableSubcategories = Array.from(new Set(products.filter(p => {
+     if (filterAnimal !== 'all' && p.category !== filterAnimal) return false;
+     if (filterBrand !== 'all' && p.brand !== filterBrand) return false;
+     return !!p.subcategory;
+  }).map(p => p.subcategory))).sort();
+
+  const resetFilters = () => {
+    setFilterAnimal('all');
+    setFilterBrand('all');
+    setFilterSubcategory('all');
+  };
 
   const handleCallRequestSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -436,74 +444,129 @@ export default function App() {
           </div>
         </div>
 
-        {/* Catalog Section */}
-        <div className="mt-8">
-          
-          {/* Dogs Catalog */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
-              Wanpy Katalog za Pse
-              <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {dogProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
-                  
-                  {/* Category Badge */}
-                  <span className="absolute top-3 left-3 bg-[#eae1f5] text-[#8154a8] text-[10px] font-bold px-2 py-1 uppercase rounded tracking-wider">PES</span>
-                  
-                  {/* Wishlist Heart */}
-                  <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
-                    <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
-                  </button>
-
-                  <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4" />
-                  
-                  <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
-                  <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
-                  
-                  <div className="mt-auto w-full flex items-center justify-between">
-                    <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
-                    <button className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors">
-                      <ShoppingCart size={14} />
+        {/* Interactive Catalog Section */}
+        <div className="mt-12">
+          <div className="flex flex-col lg:flex-row gap-8 mb-16">
+            
+            {/* Filter Sidebar */}
+            <div className="w-full lg:w-64 flex-shrink-0 space-y-8">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-brand-brown">Filtri</h3>
+                  {(filterAnimal !== 'all' || filterBrand !== 'all' || filterSubcategory !== 'all') && (
+                    <button onClick={resetFilters} className="text-sm text-brand-orange hover:underline font-medium">
+                      Počisti filtre
                     </button>
+                  )}
+                </div>
+                
+                {/* Animal Filter */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Žival</h4>
+                  <div className="flex flex-col gap-2">
+                    {['all', 'dog', 'cat'].map(animal => (
+                      <button 
+                        key={animal}
+                        onClick={() => { setFilterAnimal(animal as any); setFilterSubcategory('all'); }}
+                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterAnimal === animal ? 'bg-brand-olive text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        {animal === 'all' ? 'Vse živali' : animal === 'dog' ? 'Psi' : 'Mačke'}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              ))}
+
+                {/* Brand Filter */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Znamka</h4>
+                  <div className="flex flex-col gap-2">
+                    {['all', 'Wanpy', 'MIAMOR'].map(brand => (
+                      <button 
+                        key={brand}
+                        onClick={() => { setFilterBrand(brand); setFilterSubcategory('all'); }}
+                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterBrand === brand ? 'bg-brand-orange text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        {brand === 'all' ? 'Vse znamke' : brand}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subcategory Filter */}
+                {availableSubcategories.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Kategorija</h4>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => setFilterSubcategory('all')}
+                        className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterSubcategory === 'all' ? 'bg-brand-brown text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                      >
+                        Vse kategorije
+                      </button>
+                      {availableSubcategories.map(subcat => (
+                        <button 
+                          key={subcat}
+                          onClick={() => setFilterSubcategory(subcat)}
+                          className={`text-left px-4 py-2 rounded-xl text-sm font-medium transition-colors ${filterSubcategory === subcat ? 'bg-brand-brown text-white shadow-sm' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                        >
+                          {subcat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Cats Catalog */}
-          <div className="mb-16">
-            <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
-              Wanpy Katalog za Mačke
-              <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {catProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
-                  
-                  {/* Category Badge */}
-                  <span className="absolute top-3 left-3 bg-[#f4eefa] text-[#a48abf] text-[10px] font-bold px-2 py-1 uppercase rounded tracking-wider">MAČKA</span>
-                  
-                  {/* Wishlist Heart */}
-                  <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
-                    <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
+            {/* Product Grid */}
+            <div className="flex-1">
+              <h2 className="text-3xl font-bold text-brand-brown mb-8 relative inline-block">
+                Katalog Izdelkov
+                <span className="absolute -bottom-2 left-0 w-12 h-1 bg-brand-orange rounded-full"></span>
+              </h2>
+              
+              {gridProducts.length === 0 ? (
+                <div className="text-center py-16 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+                  <p className="text-gray-500 font-medium">Ni rezultatov za izbrane filtre.</p>
+                  <button onClick={resetFilters} className="mt-4 bg-brand-olive text-white px-6 py-2 rounded-full shadow-sm hover:bg-brand-brown transition-colors">
+                    Prikaži vse izdelke
                   </button>
-
-                  <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4" />
-                  
-                  <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
-                  <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
-                  
-                  <div className="mt-auto w-full flex items-center justify-between">
-                    <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
-                    <button className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors">
-                      <ShoppingCart size={14} />
-                    </button>
-                  </div>
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {gridProducts.map((product) => (
+                    <div key={product.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow group flex flex-col items-center text-center relative">
+                      
+                      {/* Tags */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-1 items-start">
+                         <span className={`text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shadow-sm ${product.category === 'dog' ? 'bg-[#eae1f5] text-[#8154a8]' : 'bg-[#f4eefa] text-[#a48abf]'}`}>
+                           {product.category === 'dog' ? 'PES' : 'MAČKA'}
+                         </span>
+                         <span className="bg-gray-100 text-gray-600 text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider border border-gray-200 shadow-sm">
+                           {product.brand}
+                         </span>
+                      </div>
+                      
+                      {/* Wishlist Heart */}
+                      <button onClick={(e) => { e.preventDefault(); toggleWishlist(product.id); }} className="absolute top-3 right-3 text-gray-300 hover:text-brand-orange transition-colors">
+                        <Heart size={20} fill={wishlistIds.includes(product.id) ? 'currentColor' : 'none'} className={wishlistIds.includes(product.id) ? 'text-brand-orange' : ''} />
+                      </button>
+
+                      <img src={product.image_url} alt={product.name} className="w-32 h-32 object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300 my-4 mt-10" />
+                      
+                      <h3 className="text-sm font-medium text-brand-brown mb-1 line-clamp-2 min-h-[40px]">{product.name}</h3>
+                      <p className="text-[10px] text-gray-400 mb-4">{product.description}</p>
+                      
+                      <div className="mt-auto w-full flex items-center justify-between">
+                        <span className="text-lg font-bold text-brand-orange">{Number(product.price).toFixed(2)} €</span>
+                        <button className="bg-brand-olive text-white w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-brand-brown transition-colors">
+                          <ShoppingCart size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
